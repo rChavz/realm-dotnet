@@ -204,5 +204,19 @@ namespace IntegrationTests
         }
 
 
+
+        [Test, Explicit("Take is not yet supported, see issue 486")]
+        public void LimitedSortReturnsSameObjects()
+        {
+            var ls = _realm.All<Person>().OrderBy(p => p.Score);
+            var p0 = ls.First();
+            var take0 = ls.Take(2).First();
+            _realm.Write(() => {
+                p0.Score = 997;
+            });
+            Assert.That(take0.Score, Is.EqualTo(997), "Live object updated that we got from Take");
+        }
+
+
     } // SortingTests
 }
