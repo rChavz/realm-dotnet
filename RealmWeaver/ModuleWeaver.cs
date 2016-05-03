@@ -130,6 +130,10 @@ public class ModuleWeaver
             "System.Int64",
         };
 
+        var indexableTypes = new List<string>(objectIdTypes);
+        indexableTypes.Add("System.Boolean");
+        indexableTypes.Add("System.DateTimeOffset");
+
         var genericGetObjectValueReference = MethodNamed(RealmObject, "GetObjectValue");
         var genericSetObjectValueReference = MethodNamed(RealmObject, "SetObjectValue");
         var genericGetListValueReference = MethodNamed(RealmObject, "GetListValue");
@@ -169,8 +173,15 @@ public class ModuleWeaver
 
                 Debug.Write("  - " + prop.PropertyType.FullName + " " + prop.Name + " (Column: " + columnName + ").. ");
 
-                var objectId = prop.CustomAttributes.Any(a => a.AttributeType.Name == "ObjectIdAttribute");
-                if (objectId && (!objectIdTypes.Contains(prop.PropertyType.FullName)))
+                var isIndexed = prop.CustomAttributes.Any(a => a.AttributeType.Name == "IndexedAttribute");
+                if (isIndexed && (!indexableTypes.Contains(prop.PropertyType.FullName)))
+                {
+                    LogErrorPoint($"{type.Name}.{prop.Name} is marked as [Indexed] which is only allowed on integral types as well as string, bool and DateTimeOffset, not on {prop.PropertyType.FullName}", sequencePoint);
+                    continue;
+                }
+
+                var isObjectId = prop.CustomAttributes.Any(a => a.AttributeType.Name == "ObjectIdAttribute");
+                if (isObjectId && (!objectIdTypes.Contains(prop.PropertyType.FullName)))
                 {
                     LogErrorPoint($"{type.Name}.{prop.Name} is marked as [ObjectId] which is only allowed on integral and string types, not on {prop.PropertyType.FullName}", sequencePoint);
                     continue;
@@ -186,11 +197,11 @@ public class ModuleWeaver
                 }
                 if (typeTable.ContainsKey(prop.PropertyType.FullName))
                 {
-                    var typeId = prop.PropertyType.FullName + (objectId ? " unique" : "");
+                    var typeId = prop.PropertyType.FullName + (isObjectId ? " unique" : "");
                     if (!methodTable.ContainsKey(typeId))
                     {
                         var getter = MethodNamed(RealmObject, "Get" + typeTable[prop.PropertyType.FullName] + "Value");
-                        var setter = MethodNamed(RealmObject, "Set" + typeTable[prop.PropertyType.FullName] + "Value" + (objectId ? "Unique": ""));
+                        var setter = MethodNamed(RealmObject, "Set" + typeTable[prop.PropertyType.FullName] + "Value" + (isObjectId ? "Unique": ""));
                         methodTable[typeId] = Tuple.Create(getter, setter);
                     }
 
@@ -203,12 +214,12 @@ public class ModuleWeaver
                     // RealmList allows people to declare lists only of RealmObject due to the class definition
                     if (!prop.IsAutomatic())
                     {
-                        LogWarningPoint($"{type.Name}.{columnName} is not an automatic property but its type is a RealmList which normally indicates a relationship", sequencePoint);
+                        LogErrorPoint($"{type.Name}.{columnName} is not an automatic property but its type is a RealmList which normally indicates a relationship", sequencePoint);
                         continue;
                     }
                     if (prop.SetMethod != null)
                     {
-                        LogWarningPoint($"{type.Name}.{columnName} has a setter but its type is a RealmList which only supports getters", sequencePoint);
+                        LogErrorPoint($"{type.Name}.{columnName} has a setter but its type is a RealmList which only supports getters", sequencePoint);
                         continue;
                     }
 

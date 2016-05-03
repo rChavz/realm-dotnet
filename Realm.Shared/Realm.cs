@@ -52,7 +52,6 @@ namespace Realms
             ObjectSchemaCache = new Dictionary<Type, IntPtr>();
             NativeCommon.Initialize();
             NativeCommon.register_notify_realm_changed(NotifyRealmChanged);
-            Platform.Initialize();
         }
 
         #if __IOS__
@@ -124,7 +123,7 @@ namespace Realms
 
             var srHandle = new SharedRealmHandle();
 
-            var readOnly = MarshalHelpers.BoolToIntPtr(false);
+            var readOnly = MarshalHelpers.BoolToIntPtr(config.ReadOnly);
             var durability = MarshalHelpers.BoolToIntPtr(false);
             var databasePath = config.DatabasePath;
             IntPtr srPtr = IntPtr.Zero;

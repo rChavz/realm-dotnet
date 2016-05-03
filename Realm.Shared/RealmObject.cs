@@ -90,9 +90,11 @@ namespace Realms
                 _realm.stringGetBufferLen = bufferSizeNeededChars;
             }    
 
+            bool isNull = false;
+
             // try to read
             int bytesRead = (int)NativeTable.get_string(_metadata.Table, _metadata.ColumnIndices[propertyName], (IntPtr)rowIndex, _realm.stringGetBuffer,
-                (IntPtr)_realm.stringGetBufferLen);
+                (IntPtr)_realm.stringGetBufferLen, out isNull);
             if (bytesRead == -1)
             {
                 // bad UTF-8 data unable to transcode, vastly unlikely error but could be corrupt file
@@ -105,14 +107,20 @@ namespace Realms
                 _realm.stringGetBufferLen = bytesRead;
                 // try to read with big buffer
                 bytesRead = (int)NativeTable.get_string(_metadata.Table, _metadata.ColumnIndices[propertyName], (IntPtr)rowIndex, _realm.stringGetBuffer,
-                    (IntPtr)_realm.stringGetBufferLen);
+                    (IntPtr)_realm.stringGetBufferLen, out isNull);
                 if (bytesRead == -1)  // bad UTF-8 in full string
                     throw new RealmInvalidDatabaseException(badUTF8msg);
                 Debug.Assert(bytesRead <= _realm.stringGetBufferLen);
             }  // needed re-read with expanded buffer
 
             if (bytesRead == 0)
+            {
+                if (isNull)
+                    return null;
+                
                 return "";
+            }
+
             return Marshal.PtrToStringUni(_realm.stringGetBuffer, bytesRead);
             // leaving buffer sitting allocated for quick reuse next time we read a string                
         } // GetStringValue
@@ -287,8 +295,8 @@ namespace Realms
 
             var rowIndex = _rowHandle.RowIndex;
 
-            var unixTimeSeconds = NativeTable.get_datetime_seconds(_metadata.Table, _metadata.ColumnIndices[propertyName], (IntPtr)rowIndex);
-            return DateTimeOffsetExtensions.FromUnixTimeSeconds(unixTimeSeconds);
+            var unixTimeMS = NativeTable.get_timestamp_milliseconds(_metadata.Table, _metadata.ColumnIndices[propertyName], (IntPtr)rowIndex);
+            return DateTimeOffsetExtensions.FromRealmUnixTimeMilliseconds(unixTimeMS);
         }
 
         protected DateTimeOffset? GetNullableDateTimeOffsetValue(string propertyName)
@@ -297,9 +305,9 @@ namespace Realms
 
             var rowIndex = _rowHandle.RowIndex;
 
-            long unixTimeSeconds = 0;
-            var hasValue = MarshalHelpers.IntPtrToBool(NativeTable.get_nullable_datetime_seconds(_metadata.Table, _metadata.ColumnIndices[propertyName], (IntPtr)rowIndex, ref unixTimeSeconds));
-            return hasValue ? DateTimeOffsetExtensions.FromUnixTimeSeconds(unixTimeSeconds) : (DateTimeOffset?)null;
+            long unixTimeMS = 0;
+            var hasValue = MarshalHelpers.IntPtrToBool(NativeTable.get_nullable_timestamp_milliseconds(_metadata.Table, _metadata.ColumnIndices[propertyName], (IntPtr)rowIndex, ref unixTimeMS));
+            return hasValue ? DateTimeOffsetExtensions.FromRealmUnixTimeMilliseconds(unixTimeMS) : (DateTimeOffset?)null;
         }
 
         protected RealmList<T> GetListValue<T>(string propertyName) where T : RealmObject
@@ -638,8 +646,8 @@ namespace Realms
 
             var rowIndex = _rowHandle.RowIndex;
 
-            var marshalledValue = value.ToUnixTimeSeconds();
-            NativeTable.set_datetime_seconds(_metadata.Table, _metadata.ColumnIndices[propertyName], (IntPtr)rowIndex, marshalledValue);
+            var marshalledValue = value.ToRealmUnixTimeMilliseconds();
+            NativeTable.set_timestamp_milliseconds(_metadata.Table, _metadata.ColumnIndices[propertyName], (IntPtr)rowIndex, marshalledValue);
         }
 
         protected void SetNullableDateTimeOffsetValue(string propertyName, DateTimeOffset? value)
@@ -653,8 +661,8 @@ namespace Realms
 
             if (value.HasValue)
             {
-                var marshalledValue = value.Value.ToUnixTimeSeconds();
-                NativeTable.set_datetime_seconds(_metadata.Table, _metadata.ColumnIndices[propertyName], (IntPtr) rowIndex, marshalledValue);
+                var marshalledValue = value.Value.ToRealmUnixTimeMilliseconds();
+                NativeTable.set_timestamp_milliseconds(_metadata.Table, _metadata.ColumnIndices[propertyName], (IntPtr) rowIndex, marshalledValue);
             }
             else
                 NativeTable.set_null(_metadata.Table, _metadata.ColumnIndices[propertyName], (IntPtr)rowIndex);
