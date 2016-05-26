@@ -26,6 +26,22 @@ using System.Text;
 
 namespace IntegrationTests.Shared
 {
+
+    public class Gnu : RealmObject
+    {
+        public string Name { get; set; }
+
+        public int Age { get; set; }
+    }
+
+    public class GnuOwner : RealmObject
+    {
+        public string Name { get; set; }
+
+        public Gnu Gnu { get; set; }
+    }
+
+
     [TestFixture]
     public class StandAloneObjectTests
     {
@@ -77,5 +93,30 @@ namespace IntegrationTests.Shared
                 Assert.That(p.IsInteresting);
             }
         }
+
+        [Test]
+        public void CreateRelatedThenManage()
+        {
+            Realm.DeleteRealm(RealmConfiguration.DefaultConfiguration);
+
+            // create a standalone object
+            var g = new Gnu();
+
+            // set & read properties
+            g.Name = "Rex";
+            g.Age = 9;
+
+
+            // realms are used to group data together
+            var realm = Realm.GetInstance(); // create realm pointing to default file
+
+            // save your object
+            using (var transaction = realm.BeginWrite())
+            {
+                realm.Manage(g);
+                transaction.Commit();
+            }
+        }
+
     }
 }

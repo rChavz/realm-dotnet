@@ -77,6 +77,7 @@ namespace IntegrationTests.Shared
                 d2.Color = "White";
                 o1.Dogs.Add (d2);
 
+
                 // lonely people and dogs
                 Owner o2 = realm.CreateObject<Owner> ();
                 o2.Name = "Dani";  // the dog-less
@@ -84,6 +85,7 @@ namespace IntegrationTests.Shared
                 Dog d3 = realm.CreateObject<Dog> ();  // will remain unassigned
                 d3.Name = "Maggie Mongrel";
                 d3.Color = "Grey";
+
 
                 /*
                 These would work if we can preserve init through weaving, like:
@@ -147,7 +149,7 @@ namespace IntegrationTests.Shared
         {
             var tim = realm.All<Owner>().First( p => p.Name == "Tim");
             var dogNames = new List<string>();
-            var dogList = tim.Dogs.ToList();  // this used to crash - issue 299
+            var dogList = tim.Dogs.ToList();
             foreach (var dog in dogList)
             {
                 dogNames.Add(dog.Name);
@@ -286,6 +288,26 @@ namespace IntegrationTests.Shared
                 dogsIterated++;
             }
             Assert.That(dogsIterated, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void SearchByRelatedDogs()
+        {
+
+            // Another owner added for related search purposes
+            realm.Write (() => {
+                var o = realm.CreateObject<Owner>();
+                o.Name = "Mark";
+                var d = realm.CreateObject<Dog>();
+                d.Name = "Fifi Fleamuncher";
+                d.Color = "White";
+                o.Dogs.Add(d);
+            });
+
+            var whiteOwners = from dogOwner in realm.All<Owner> ()
+                where dogOwner.Dogs.Any (dog => dog.Color == "White")
+                select dogOwner;
+            Assert.That (whiteOwners, Is.EquivalentTo(new List<String> {"Tim", "Mark"}) );
         }
 
 
