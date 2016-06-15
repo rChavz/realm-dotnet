@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
@@ -20,7 +20,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)extensions\DateTimeOffsetExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)handles\QueryHandle.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)handles\RealmHandle.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)handles\RowHandle.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)handles\ObjectHandle.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)handles\SchemaInitializerHandle.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)handles\SchemaHandle.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)handles\SharedRealmHandle.cs" />
@@ -31,7 +31,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)native\NativeCommon.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)native\NativeObjectSchema.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)native\NativeQuery.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)native\NativeRow.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)native\NativeObject.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)native\NativeSchema.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)native\NativeSharedRealm.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)native\NativeTable.cs" />
