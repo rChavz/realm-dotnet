@@ -174,7 +174,7 @@ namespace Realms
         public void Add(T item)
         {
             this.ManageObjectIfNeeded(item);
-            var rowIndex = ((RealmObject)item).RowHandle.RowIndex;
+            var rowIndex = ((RealmObject)item).ObjectHandle.RowIndex;
             NativeLinkList.add(_listHandle, (IntPtr)rowIndex);        
         }
 
@@ -238,7 +238,7 @@ namespace Realms
             if (!item.IsManaged)
                 throw new ArgumentException("Value does not belong to a realm", nameof(item));
 
-            var rowIndex = ((RealmObject)item).RowHandle.RowIndex;
+            var rowIndex = ((RealmObject)item).ObjectHandle.RowIndex;
             return (int)NativeLinkList.find(_listHandle, (IntPtr)rowIndex, (IntPtr)0);        
         }
 
@@ -255,7 +255,7 @@ namespace Realms
                 throw new IndexOutOfRangeException ();
 
             this.ManageObjectIfNeeded(item);
-            var rowIndex = ((RealmObject)item).RowHandle.RowIndex;
+            var rowIndex = ((RealmObject)item).ObjectHandle.RowIndex;
             NativeLinkList.insert(_listHandle, (IntPtr)index, (IntPtr)rowIndex);        
         }
 

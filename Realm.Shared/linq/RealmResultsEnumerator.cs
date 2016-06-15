@@ -64,10 +64,10 @@ namespace Realms
             
             ++_index;
             var rowPtr = NativeResults.get_row(_enumeratingResults, (IntPtr)_index);
-            var rowHandle = Realm.CreateRowHandle(rowPtr, _realm.SharedRealmHandle);
+            var objectHandle = Realm.CreateObjectHandle(rowPtr, _realm.SharedRealmHandle);
             object nextObj = null;
-            if (!rowHandle.IsInvalid)                 
-                nextObj = _realm.MakeObjectForRow(_retType, rowHandle);
+            if (!objectHandle.IsInvalid)                 
+                nextObj = _realm.MakeObjectForRow(_retType, objectHandle);
             Current = (T)nextObj;
             return nextObj != null;
         }

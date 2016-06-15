@@ -462,10 +462,10 @@ namespace Realms
             return result;
         }
 
-        internal RealmObject MakeObjectForRow(Type objectType, RowHandle rowHandle)
+        internal RealmObject MakeObjectForRow(Type objectType, ObjectHandle objectHandle)
         {
-            RealmObject ret = Metadata[objectType].Helper.CreateInstance();
-            ret._Manage(this, rowHandle);
+            var ret = Metadata[objectType].Helper.CreateInstance();
+            ret._Manage(this, objectHandle);
             return ret;
         }
 
@@ -526,10 +526,10 @@ namespace Realms
 
             var tableHandle = Metadata[typeof(T)].Table;
 
-            var rowPtr = NativeTable.add_empty_row(tableHandle);
-            var rowHandle = CreateRowHandle(rowPtr, SharedRealmHandle);
+            var objectPtr = NativeTable.add_empty_row(tableHandle);
+            var objectHandle = CreateObjectHandle(objectPtr, SharedRealmHandle);
 
-            obj._Manage(this, rowHandle);
+            obj._Manage(this, objectHandle);
             obj._CopyDataFromBackingFieldsToRow();
         }
 
@@ -549,17 +549,17 @@ namespace Realms
 
 
         [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-        internal static RowHandle CreateRowHandle(IntPtr rowPtr, SharedRealmHandle sharedRealmHandle)
+        internal static ObjectHandle CreateObjectHandle(IntPtr objectPtr, SharedRealmHandle sharedRealmHandle)
         {
-            var rowHandle = new RowHandle(sharedRealmHandle);
+            var objectHandle = new ObjectHandle(sharedRealmHandle);
 
             RuntimeHelpers.PrepareConstrainedRegions();
             try { /* Retain handle in a constrained execution region */ }
             finally
             {
-                rowHandle.SetHandle(rowPtr);
+                objectHandle.SetHandle(objectPtr);
             }
-            return rowHandle;
+            return objectHandle;
         }
 
         [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]

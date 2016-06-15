@@ -159,26 +159,26 @@ namespace Realms
                 if (m.Method.Name == "Any")
                 {
                     RecurseToWhereOrRunLambda(m);  
-                    var rowPtr = NativeQuery.findDirect(_coreQueryHandle, IntPtr.Zero);
-                    var firstRow = Realm.CreateRowHandle(rowPtr, _realm.SharedRealmHandle);
+                    var objectPtr = NativeQuery.findDirect(_coreQueryHandle, IntPtr.Zero);
+                    var firstRow = Realm.CreateObjectHandle(objectPtr, _realm.SharedRealmHandle);
                     bool foundAny = !firstRow.IsInvalid;
                     return Expression.Constant(foundAny);
                 }
                 if (m.Method.Name == "First")
                 {
                     RecurseToWhereOrRunLambda(m);  
-                    RowHandle firstRow = null;
+                    ObjectHandle firstRow = null;
                     if (_optionalSortOrderHandle == null)
                     {
                         var rowPtr = NativeQuery.findDirect(_coreQueryHandle, IntPtr.Zero);
-                        firstRow = Realm.CreateRowHandle(rowPtr, _realm.SharedRealmHandle);
+                        firstRow = Realm.CreateObjectHandle(rowPtr, _realm.SharedRealmHandle);
                     }
                     else 
                     {
                         using (ResultsHandle rh = _realm.MakeResultsForQuery(_retType, _coreQueryHandle, _optionalSortOrderHandle)) 
                         {
                             var rowPtr = NativeResults.get_row(rh, IntPtr.Zero);
-                            firstRow = Realm.CreateRowHandle(rowPtr, _realm.SharedRealmHandle);
+                            firstRow = Realm.CreateObjectHandle(rowPtr, _realm.SharedRealmHandle);
                         }
                     }
                     if (firstRow == null || firstRow.IsInvalid)
@@ -189,12 +189,12 @@ namespace Realms
                 {
                     RecurseToWhereOrRunLambda(m);  
                     var rowPtr = NativeQuery.findDirect(_coreQueryHandle, IntPtr.Zero);
-                    var firstRow = Realm.CreateRowHandle(rowPtr, _realm.SharedRealmHandle);
+                    var firstRow = Realm.CreateObjectHandle(rowPtr, _realm.SharedRealmHandle);
                     if (firstRow.IsInvalid)
                         throw new InvalidOperationException("Sequence contains no matching element");
                     IntPtr nextIndex = (IntPtr)(firstRow.RowIndex+1);
                     var nextRowPtr = NativeQuery.findDirect(_coreQueryHandle, nextIndex);
-                    var nextRow = Realm.CreateRowHandle(nextRowPtr, _realm.SharedRealmHandle);
+                    var nextRow = Realm.CreateObjectHandle(nextRowPtr, _realm.SharedRealmHandle);
                     if (!nextRow.IsInvalid)
                         throw new InvalidOperationException("Sequence contains more than one matching element");
                     return Expression.Constant(_realm.MakeObjectForRow(_retType, firstRow));

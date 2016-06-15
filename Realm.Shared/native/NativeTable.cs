@@ -122,9 +122,6 @@ namespace Realms
         [DllImport(InteropConfig.DLL_NAME, EntryPoint = "table_unbind", CallingConvention = CallingConvention.Cdecl)]
         internal static extern void unbind(IntPtr tableHandle);
 
-        [DllImport(InteropConfig.DLL_NAME, EntryPoint = "table_remove_row", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void remove_row(TableHandle tableHandle, RowHandle rowHandle);
-
         [DllImport(InteropConfig.DLL_NAME, EntryPoint = "table_get_column_index", CallingConvention = CallingConvention.Cdecl)]
          //returns -1 if the column string does not match a column index
        internal static extern IntPtr get_column_index(TableHandle tablehandle,

@@ -54,8 +54,8 @@ namespace Realms
             get
             {
                 var row = NativeResults.get_row(ResultsHandle, (IntPtr)index);
-                var rowHandle = Realm.CreateRowHandle(row, _realm.SharedRealmHandle);
-                return (T)(object)_realm.MakeObjectForRow(typeof(T), rowHandle);
+                var objectHandle = Realm.CreateObjectHandle(row, _realm.SharedRealmHandle);
+                return (T)(object)_realm.MakeObjectForRow(typeof(T), objectHandle);
             }
         }
 
