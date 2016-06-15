@@ -20,22 +20,22 @@ using System;
 
 namespace Realms
 {
-    internal class RowHandle: RealmHandle
+    internal class ObjectHandle: RealmHandle
     {
         //keep this one even though warned that it is not used. It is in fact used by marshalling
         //used by P/Invoke to automatically construct a TableHandle when returning a size_t as a TableHandle
         [Preserve]
-        public RowHandle(SharedRealmHandle sharedRealmHandle) : base(sharedRealmHandle)
+        public ObjectHandle(SharedRealmHandle sharedRealmHandle) : base(sharedRealmHandle)
         {
         }
 
         protected override void Unbind()
         {
-            NativeRow.destroy(handle);
+            NativeObject.destroy(handle);
         }
 
-        public long RowIndex => (long)NativeRow.row_get_row_index(this);
-        public bool IsAttached => NativeRow.row_get_is_attached(this)==(IntPtr)1;  // inline equiv of IntPtrToBool
+        public long RowIndex => (long)NativeObject.get_row_index(this);
+        public bool IsAttached => NativeObject.get_is_attached(this)==(IntPtr)1;  // inline equiv of IntPtrToBool
 
         public override bool Equals(object p)
         {
@@ -51,7 +51,7 @@ namespace Realms
                 return true;
             }
 
-            return ((RowHandle) p).RowIndex == RowIndex;
+            return ((ObjectHandle) p).RowIndex == RowIndex;
         }
     }
 }
