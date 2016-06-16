@@ -456,7 +456,7 @@ namespace Realms
             var result = (T)metadata.Helper.CreateInstance();
 
             var rowPtr = NativeTable.add_empty_row(metadata.Table);
-            var rowHandle = CreateRowHandle (rowPtr, SharedRealmHandle);
+            var rowHandle = CreateObjectHandle (rowPtr, SharedRealmHandle);
 
             result._Manage(this, rowHandle);
             return result;
@@ -697,7 +697,7 @@ namespace Realms
                 throw new RealmOutsideTransactionException("Cannot remove Realm object outside write transactions");
 
             var tableHandle = Metadata[obj.GetType()].Table;
-            NativeTable.remove_row(tableHandle, (RowHandle)obj.RowHandle);
+            //NativeTable.remove_row(tableHandle, (ObjectHandle)obj.RowHandle);
         }
 
         /// <summary>
