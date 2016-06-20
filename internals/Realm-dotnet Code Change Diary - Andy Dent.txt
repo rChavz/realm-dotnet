@@ -2256,8 +2256,11 @@ RelationshipTests.cs
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #644 Added Testing for nested Any
 
-RelationshipTests.cs
-- AnyInSearch added with class decls in region RelatedSearch
+ComplexRelationshipTests.cs
+- added for user support leading to multi-way relationship searching
 
 IntegrationTests.XamarinIOS.csproj
 - turn on overflow checking for debug
+
+IntegrationTests.shared.csproj
+- added ComplexRelationshipTests.cs

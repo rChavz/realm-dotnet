@@ -327,6 +327,8 @@ namespace IntegrationTests.Shared
             Assert.Throws<IndexOutOfRangeException>( () => scratch = tim.Dogs[99] );
         }
 
+
+        #region Standalones
         [Test]
         public void TestSettingStandAloneObjectToRelationship()
         {
@@ -508,124 +510,6 @@ namespace IntegrationTests.Shared
         }
         #endregion DeleteRelated
 
-        #region RelatedSearch
-        // based on user report, needs threee classes
-        // will be searching on values coming from another table
-        /*
-        class OtherDogs : RealmObject
-        {
-            public string Name { get; set}
-        } */
-
-
-        // Andy faked 
-        public struct ServicedBy
-        {
-            private int _theInt;
-
-            public ServicedBy(int anInt)
-            {
-
-                _theInt = anInt;
-            }
-
-            static public implicit operator ServicedBy(int intValue)
-            {
-                return new ServicedBy(intValue) { _theInt = intValue };
-            }
-
-            static public explicit operator int(ServicedBy sb)
-            {
-                return sb._theInt;
-            }
-        }
-
-        public class MaintenanceLogEntry : RealmObject //, //IAppointment
-        {
-            public DateTimeOffset DateOfService { get; set; }
-            public int HoursAtService { get; set; }
-            public string Notes { get; set; }
-            public RealmList<ItemLogEntry> LoggedItems { get; }
-            public string EngineSerial { get; set; }
-            private int _servicedBy { get; set; }
-            public ServicedBy ServicedBy {
-                get { return (ServicedBy)_servicedBy; }
-                set { _servicedBy = (int)value; }
-            }
-            public string DealerName { get; set; }
-        }
-
-        public class ItemLogEntry : RealmObject
-        {
-            public MaintenanceItem Item { get; set; }
-            public bool Inspected { get; set; }
-            public bool Replaced { get; set; }
-        }
-
-        public class MaintenanceItem : RealmObject
-        {
-            public string ShortName { get; set; }
-            public string LongName { get; set; }
-            public int InspectInterval { get; set; }
-            public int ReplaceInterval { get; set; }
-        }
-
-
-        [Test]
-        public void AnyInSearch()
-        {
-            realm.Write(() => {
-                var mi1 = realm.CreateObject<MaintenanceItem>();
-                mi1.ShortName = "Drive Band";
-                var mi2 = realm.CreateObject<MaintenanceItem>();
-                mi2.ShortName = "Hamster";
-
-                var il1 = realm.CreateObject<ItemLogEntry>();
-                il1.Inspected = true;
-                il1.Replaced = false;
-                il1.Item = mi1;
-
-                var il2 = realm.CreateObject<ItemLogEntry>();
-                il2.Inspected = true;
-                il2.Replaced = true;
-                il2.Item = mi2;
-
-
-                var mle = realm.CreateObject<MaintenanceLogEntry>();
-                mle.EngineSerial = "Thomas001";
-                mle.DateOfService = new DateTimeOffset(2015, 12, 1, 10, 30, 0, TimeSpan.Zero);
-                mle.LoggedItems.Add(il1);
-            });
-            GetAllMaintenanceIntervals(99, "Thomas001");
-        }
- 
-
-        public void GetAllMaintenanceIntervals(int engineHours, string engineSerial)
-        {
-            // List<MaintenanceInterval> toReturn = new List<MaintenanceInterval>();
-            var serial = engineSerial; //TODO Realm workaround
-            var logsForThisEngine = realm.All<MaintenanceLogEntry>().Where(log => log.EngineSerial == serial);
-            int foundInspected = 0;
-            int foundReplaced = 0;
-            foreach (var item in realm.All<MaintenanceItem>()) {
-                //Any not supported? hence ToList //TODO Realm workaround
-                var llogs = logsForThisEngine.ToList();
-                var itemInspectLogs =llogs.Where(
-                    log => log.LoggedItems.Any(itemlog => itemlog.Item.ShortName == item.ShortName && itemlog.Inspected));
-                foundInspected += itemInspectLogs.Count();
-                var itemReplaceLogs = llogs.Where(
-                    log => log.LoggedItems.Any(itemlog => itemlog.Item.ShortName == item.ShortName && itemlog.Replaced));
-                foundReplaced += itemReplaceLogs.Count();
-
-              //  var mostRecentInspect = itemInspectLogs.OrderByDescending(log => log.DateOfService).FirstOrDefault();
-              //  var mostRecentReplace = itemReplaceLogs.OrderByDescending(log => log.DateOfService).FirstOrDefault();
-            }
-            Assert.That(foundInspected, Is.EqualTo(1));
-            Assert.That(foundReplaced, Is.EqualTo(1));
-        }
-
-
-        #endregion RelatedSearch
     } // RelationshipTests
 
 }
