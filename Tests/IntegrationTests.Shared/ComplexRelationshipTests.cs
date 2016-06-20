@@ -228,7 +228,8 @@ namespace IntegrationTests.Shared
             int foundInspected = 0;
             int foundReplaced = 0;
             foreach (var mle in logsForThisEngine) {
-               var itemInspectLogs = mle.LoggedItems.Where(itemlog => itemlog.Inspected);
+                // the following Where is using standard Linq for Objects on the IEnumerable RealmList LoggedItems
+                var itemInspectLogs = mle.LoggedItems.Where(itemlog => itemlog.Inspected);
                 foundInspected += itemInspectLogs.Count();
                 var itemReplaceLogs = mle.LoggedItems.Where(itemlog => itemlog.Replaced);
                 foundReplaced += itemReplaceLogs.Count();
