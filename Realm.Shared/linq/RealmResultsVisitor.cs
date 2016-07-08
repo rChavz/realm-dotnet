@@ -199,7 +199,28 @@ namespace Realms
                         throw new InvalidOperationException("Sequence contains more than one matching element");
                     return Expression.Constant(_realm.MakeObjectForRow(_schema.Name, firstRow));
                 }
+                if (m.Method.Name == "ElementAt")
+                {
+                    Visit(m.Arguments.First());
+                    var index = (IntPtr)(int)ExtractConstantValue(m.Arguments.Last());
+                    IntPtr row;
+                    if (_optionalSortOrderHandle == null)
+                    {
+                        row = NativeQuery.findDirect(_coreQueryHandle, index);
+                    }
+                    else
+                    {
+                        using (var results = _realm.MakeResultsForQuery(_schema, _coreQueryHandle, _optionalSortOrderHandle))
+                        {
+                            row = NativeResults.get_row(results, index);
+                        }
+                    }
 
+                    var rowHandle = Realm.CreateRowHandle(row, _realm.SharedRealmHandle);
+                    if (rowHandle == null || rowHandle.IsInvalid)
+                        throw new IndexOutOfRangeException();
+                    return Expression.Constant(_realm.MakeObjectForRow(_schema.Name, rowHandle));
+                }
             }
 
             if (m.Method.DeclaringType == typeof(string))
@@ -520,14 +541,14 @@ namespace Realms
         // strange as it may seem, this is also called for the LHS when simply iterating All<T>()
         internal override Expression VisitConstant(ConstantExpression c)
         {
-            IQueryable q = c.Value as IQueryable;
-            if (q != null)
+            var results = c.Value as IRealmResults;
+            if (results != null)
             {
                 // assume constant nodes w/ IQueryables are table references
                 if (_coreQueryHandle != null)
                     throw new Exception("We already have a table...");
 
-                _coreQueryHandle = CreateQuery(q.ElementType);
+                _coreQueryHandle = CreateQuery(results.ObjectSchema);
             }
             else if (c.Value == null)
             {
@@ -551,7 +572,7 @@ namespace Realms
             return c;
         }
 
-        private QueryHandle CreateQuery(Type elementType)
+        private QueryHandle CreateQuery(Schema.ObjectSchema elementType)
         {
             var tableHandle = _realm.Metadata[elementType.Name].Table;
             var queryHandle = tableHandle.TableWhere();
