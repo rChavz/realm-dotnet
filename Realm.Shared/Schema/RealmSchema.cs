@@ -23,6 +23,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Realms.Schema;
 
 namespace Realms
@@ -105,6 +106,43 @@ namespace Realms
             return builder.Build(schemaHandle ?? new SchemaHandle());
         }
 
+        internal static RealmSchema CreateSchemaFromUnmanagedSchema(SharedRealmHandle sharedRealm, NativeSchema.SchemaFromUnmanagedMarshalling unmanagedSchema)
+        {
+            var objects = new List<ObjectSchema>();
+            for (var i = 0; i < unmanagedSchema.objects_len; i++)
+            {
+                var unmanagedObject = Marshal.PtrToStructure<NativeSchema.Object>(IntPtr.Add(unmanagedSchema.objects, NativeSchema.Object.Size * i));
+                var builder = new ObjectSchema.Builder(unmanagedObject.name);
+                for (var n = unmanagedObject.properties_start; n < unmanagedObject.properties_end; n++)
+                {
+                    var unmanagedProperty = Marshal.PtrToStructure<NativeSchema.Property>(IntPtr.Add(unmanagedSchema.properties, NativeSchema.Property.Size * n));
+                    builder.Add(new Property
+                    {
+                        Name = unmanagedProperty.name,
+                        Type = unmanagedProperty.type,
+                        ObjectType = unmanagedProperty.object_type,
+                        IsObjectId = unmanagedProperty.is_primary,
+                        IsNullable = unmanagedProperty.is_nullable,
+                        IsIndexed = unmanagedProperty.is_indexed
+                    });
+                }
+
+                var @object = builder.Build();
+                @object.Handle = Marshal.PtrToStructure<IntPtr>(IntPtr.Add(unmanagedSchema.object_handles, IntPtr.Size * i));
+                objects.Add(@object);
+            }
+
+            var schemaHandle = new SchemaHandle(sharedRealm);
+            RuntimeHelpers.PrepareConstrainedRegions();
+            try { }
+            finally
+            {
+                schemaHandle.SetHandle(unmanagedSchema.handle);
+            }
+
+            return new RealmSchema(schemaHandle, objects);
+        }
+
         private static RealmSchema BuildDefaultSchema()
         {
             var realmObjectClasses = AppDomain.CurrentDomain.GetAssemblies()
@@ -168,7 +206,7 @@ namespace Realms
                 {
                     name = property.Name,
                     type = property.Type,
-                    objectType = property.ObjectType,
+                    object_type = property.ObjectType,
                     is_nullable = property.IsNullable,
                     is_indexed = property.IsIndexed,
                     is_primary = property.IsObjectId

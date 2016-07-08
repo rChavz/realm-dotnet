@@ -26,6 +26,8 @@ namespace Realms
         [StructLayout(LayoutKind.Sequential)]
         internal struct Property
         {
+            internal static readonly int Size = Marshal.SizeOf<Property>();
+
             [MarshalAs(UnmanagedType.LPStr)]
             internal string name;
 
@@ -33,7 +35,7 @@ namespace Realms
             internal Schema.PropertyType type;
 
             [MarshalAs(UnmanagedType.LPStr)]
-            internal string objectType;
+            internal string object_type;
 
             [MarshalAs(UnmanagedType.I1)]
             internal bool is_nullable;
@@ -48,11 +50,27 @@ namespace Realms
         [StructLayout(LayoutKind.Sequential)]
         internal struct Object
         {
+            internal static readonly int Size = Marshal.SizeOf<Object>();
+
             [MarshalAs(UnmanagedType.LPStr)]
             internal string name;
 
             internal int properties_start;
             internal int properties_end;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal unsafe struct SchemaFromUnmanagedMarshalling
+        {
+            internal IntPtr handle;
+            internal UInt64 schema_version;
+
+            internal IntPtr /* Object[] */ objects;
+            internal IntPtr /* IntPtr[] */ object_handles;
+            internal int objects_len;
+
+            internal IntPtr /* Property[] */ properties;
+
         }
 
         [DllImport(InteropConfig.DLL_NAME, EntryPoint = "schema_create", CallingConvention = CallingConvention.Cdecl)]

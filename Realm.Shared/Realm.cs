@@ -119,33 +119,42 @@ namespace Realms
                 schema = schema.CloneForAdoption(srHandle);
             }
 
-            var readOnly = MarshalHelpers.BoolToIntPtr(config.ReadOnly);
-            var durability = MarshalHelpers.BoolToIntPtr(false);
-            var databasePath = config.DatabasePath;
+            var native_config = new NativeSharedRealm.Configuration
+            {
+                path = config.DatabasePath,
+                path_len = (IntPtr)config.DatabasePath.Length,
+                read_only = config.ReadOnly,
+                in_memory = false,
+                encryption_key = config.EncryptionKey,
+                schema = schema.Handle.DangerousGetHandle(),
+                schema_version = config.SchemaVersion
+            };
+
+            GCHandle? migrationDataHandle = config.MigrationCallback != null ? GCHandle.Alloc(new MigrationData { Configuration = config, Schema = schema }) : (GCHandle?)null;
+            NativeSharedRealm.MigrationCallbackDelegate migrationCallback = migrationDataHandle != null ? (NativeSharedRealm.MigrationCallbackDelegate)MigrationCallback : null;
+            IntPtr migrationData = migrationDataHandle != null ? GCHandle.ToIntPtr(migrationDataHandle.Value) : IntPtr.Zero;
+
             IntPtr srPtr = IntPtr.Zero;
-            try {
-                srPtr = NativeSharedRealm.open(schema.Handle, 
-                    databasePath, (IntPtr)databasePath.Length, 
-                    readOnly, durability, 
-                    config.EncryptionKey,
-                    config.SchemaVersion);
-            } catch (RealmMigrationNeededException) {
+            try
+            {
+                srPtr = NativeSharedRealm.open(native_config, migrationCallback, migrationData);
+            }
+            catch (RealmMigrationNeededException)
+            {
                 if (config.ShouldDeleteIfMigrationNeeded)
                 {
                     DeleteRealm(config);
                 }
                 else
                 {
-                    throw; // rethrow te exception
-                    //TODO when have Migration but also consider programmer control over auto migration
-                    //MigrateRealm(configuration);
+                    throw;
                 }
                 // create after deleting old reopen after migrating 
-                srPtr = NativeSharedRealm.open(schema.Handle, 
-                    databasePath, (IntPtr)databasePath.Length, 
-                    readOnly, durability, 
-                    config.EncryptionKey,
-                    config.SchemaVersion);
+                srPtr = NativeSharedRealm.open(native_config, migrationCallback, migrationData);
+            }
+            finally
+            {
+                migrationDataHandle?.Free();
             }
 
             RuntimeHelpers.PrepareConstrainedRegions();
@@ -156,7 +165,39 @@ namespace Realms
             }
 
             return new Realm(srHandle, config, schema);
-        } 
+        }
+
+        #if __IOS__
+        [MonoPInvokeCallback(typeof(NativeSharedRealm.MigrationCallbackDelegate))]
+        #endif
+        private static void MigrationCallback(IntPtr oldRealm, NativeSchema.SchemaFromUnmanagedMarshalling oldSchema, IntPtr newRealm, IntPtr data)
+        {
+            var migrationData = (MigrationData)GCHandle.FromIntPtr(data).Target;
+
+            var oldConfiguration = new RealmConfiguration(migrationData.Configuration.DatabasePath) { SchemaVersion = oldSchema.schema_version, ReadOnly = true };
+
+            var oldHandle = new SharedRealmHandle();
+            var newHandle = new SharedRealmHandle();
+            RuntimeHelpers.PrepareConstrainedRegions();
+            try { /* Retain handle in a constrained execution region */ }
+            finally
+            {
+                oldHandle.SetHandle(oldRealm);
+                newHandle.SetHandle(newRealm);
+            }
+
+            using (var managedOld = new Realm(oldHandle, oldConfiguration, RealmSchema.CreateSchemaFromUnmanagedSchema(oldHandle, oldSchema)))
+            using (var managedNew = new Realm(newHandle, migrationData.Configuration, migrationData.Schema))
+            {
+                migrationData.Configuration.MigrationCallback(managedOld, managedNew);
+            }
+        }
+
+        private class MigrationData
+        {
+            internal RealmConfiguration Configuration;
+            internal RealmSchema Schema;
+        }
 
         #endregion
 
@@ -174,9 +215,6 @@ namespace Realms
         {
             SharedRealmHandle = sharedRealmHandle;
             Config = config;
-            // update OUR config version number in case loaded one from disk
-            Config.SchemaVersion = NativeSharedRealm.get_schema_version(sharedRealmHandle);
-
             Metadata = schema.ToDictionary(t => t.Name, CreateRealmObjectMetadata);
             Schema = schema;
         }

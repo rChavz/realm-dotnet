@@ -23,9 +23,29 @@ namespace Realms
 {
     internal static class NativeSharedRealm
     {
+        internal delegate void MigrationCallbackDelegate(IntPtr oldRealm, NativeSchema.SchemaFromUnmanagedMarshalling oldSchema, IntPtr newRealm, IntPtr data);
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct Configuration
+        {
+            [MarshalAs(UnmanagedType.LPWStr)]
+            internal string path;
+            internal IntPtr path_len;
+
+            [MarshalAs(UnmanagedType.I1)]
+            internal bool read_only;
+            [MarshalAs(UnmanagedType.I1)]
+            internal bool in_memory;
+
+            [MarshalAs(UnmanagedType.LPArray)]
+            internal byte[] encryption_key;
+
+            internal IntPtr schema;
+            internal UInt64 schema_version;
+        }
+
         [DllImport(InteropConfig.DLL_NAME, EntryPoint = "shared_realm_open", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern IntPtr open(SchemaHandle schemaHandle, [MarshalAs(UnmanagedType.LPWStr)]string path, IntPtr pathLength, IntPtr readOnly,
-            IntPtr durability, byte[] encryptionKey, UInt64 schemaVersion);
+        internal static extern IntPtr open(Configuration configuration, MigrationCallbackDelegate migrationCallback, IntPtr migrationCallbackData);
 
         [DllImport(InteropConfig.DLL_NAME, EntryPoint = "shared_realm_bind_to_managed_realm_handle", CallingConvention = CallingConvention.Cdecl)]
         internal static extern void bind_to_managed_realm_handle(SharedRealmHandle sharedRealm, IntPtr managedRealmHandle);
@@ -60,9 +80,5 @@ namespace Realms
         [DllImport(InteropConfig.DLL_NAME, EntryPoint = "shared_realm_is_same_instance",
             CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr is_same_instance(SharedRealmHandle lhs, SharedRealmHandle rhs);
-
-        [DllImport(InteropConfig.DLL_NAME, EntryPoint = "shared_realm_get_schema_version",
-            CallingConvention = CallingConvention.Cdecl)]
-        internal static extern UInt64 get_schema_version(SharedRealmHandle sharedRealm);
     }
 }

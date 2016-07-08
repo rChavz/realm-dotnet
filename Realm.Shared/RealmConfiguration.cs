@@ -95,6 +95,8 @@ namespace Realms
         /// <value>0-based value initially set to indicate user is not versioning.</value>
         public UInt64 SchemaVersion { get; set;} = RealmConfiguration.NotVersioned;
 
+        public delegate void MigrationCallbackDelegate(Realm oldRealm, Realm newRealm);
+        public MigrationCallbackDelegate MigrationCallback { get; set; }
 
         private byte[] _EncryptionKey;
 

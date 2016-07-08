@@ -26,6 +26,7 @@
 #include "object-store/src/schema.hpp"
 #include "object-store/src/binding_context.hpp"
 #include <list>
+#include "schema_cs.hpp"
 
 
 using namespace realm;
@@ -60,25 +61,77 @@ REALM_EXPORT void register_notify_realm_changed(NotifyRealmChangedT notifier)
     notify_realm_changed = notifier;
 }
 
-REALM_EXPORT SharedRealm* shared_realm_open(Schema* schema, uint16_t* path, size_t path_len, bool read_only, SharedGroup::DurabilityLevel durability,
-                        uint8_t* encryption_key, uint64_t schemaVersion)
+struct SchemaForManagedMarshalling
+{
+    Schema* handle;
+    uint64_t schema_version;
+    
+    SchemaObject* objects;
+    ObjectSchema** object_handles;
+    int objects_len;
+    
+    SchemaProperty* properties;
+};
+    
+typedef void (MigrationCallbackDelegate)(SharedRealm* old_realm, SchemaForManagedMarshalling old_schema, SharedRealm* new_realm, void* data);
+
+struct Configuration
+{
+    uint16_t* path;
+    size_t path_len;
+    
+    bool read_only;
+    
+    bool in_memory;
+    
+    char* encryption_key;
+    
+    Schema* schema;
+    uint64_t schema_version;
+};
+    
+REALM_EXPORT SharedRealm* shared_realm_open(const Configuration configuration, MigrationCallbackDelegate migrationCallback, void* migrationCallbackData)
 {
     return handle_errors([&]() {
-        Utf16StringAccessor pathStr(path, path_len);
+        Utf16StringAccessor pathStr(configuration.path, configuration.path_len);
 
         Realm::Config config;
         config.path = pathStr.to_string();
-        config.read_only = read_only;
-        config.in_memory = durability != SharedGroup::durability_Full;
+        config.read_only = configuration.read_only;
+        config.in_memory = configuration.in_memory;
 
         // by definition the key is only allowwed to be 64 bytes long, enforced by C# code
-        if (encryption_key == nullptr)
-          config.encryption_key = std::vector<char>();
-        else
-          config.encryption_key = std::vector<char>(encryption_key, encryption_key+64);
+        if (configuration.encryption_key != nullptr)
+          config.encryption_key = std::vector<char>(configuration.encryption_key, configuration.encryption_key + 64);
 
-        config.schema.reset(schema);
-        config.schema_version = schemaVersion;
+        config.schema.reset(configuration.schema);
+        config.schema_version = configuration.schema_version;
+
+        if (migrationCallback) {
+            config.migration_function = [=](SharedRealm old, SharedRealm current) {
+                std::vector<SchemaObject> schema_objects;
+                std::vector<ObjectSchema*> object_handles;
+                std::vector<SchemaProperty> schema_properties;
+                
+                for (auto& object : *old->config().schema) {
+                    schema_objects.push_back(SchemaObject::for_marshalling(object, schema_properties));
+                    object_handles.push_back(&object);
+                }
+                
+                SchemaForManagedMarshalling schema {
+                    old->config().schema.get(),
+                    old->config().schema_version,
+                    
+                    schema_objects.data(),
+                    object_handles.data(),
+                    static_cast<int>(schema_objects.size()),
+                    
+                    schema_properties.data()
+                };
+                
+                migrationCallback(new SharedRealm(old), schema, new SharedRealm(current), migrationCallbackData);
+            };
+        }
 
         return new SharedRealm{Realm::get_shared_realm(config)};
     });
@@ -95,7 +148,6 @@ REALM_EXPORT void shared_realm_bind_to_managed_realm_handle(SharedRealm* realm, 
 REALM_EXPORT void shared_realm_destroy(SharedRealm* realm)
 {
     handle_errors([&]() {
-        (*realm)->close();
         delete realm;
     });
 }
@@ -108,13 +160,6 @@ REALM_EXPORT Table* shared_realm_get_table(SharedRealm* realm, uint16_t* object_
 
         std::string table_name = ObjectStore::table_name_for_object_type(str);
         return LangBindHelper::get_table(*g, table_name);
-    });
-}
-
-REALM_EXPORT uint64_t  shared_realm_get_schema_version(SharedRealm* realm)
-{
-    return handle_errors([&]() {
-      return (*realm)->config().schema_version;
     });
 }
 
