@@ -44,7 +44,7 @@ struct SchemaObject
     static SchemaObject for_marshalling(const realm::ObjectSchema&, std::vector<SchemaProperty>&);
 };
 
-SchemaProperty SchemaProperty::for_marshalling(const realm::Property& property)
+inline SchemaProperty SchemaProperty::for_marshalling(const realm::Property& property)
 {
     return {
         property.name.c_str(),
@@ -56,7 +56,7 @@ SchemaProperty SchemaProperty::for_marshalling(const realm::Property& property)
     };
 }
 
-SchemaObject SchemaObject::for_marshalling(const realm::ObjectSchema& object, std::vector<SchemaProperty>& properties)
+inline SchemaObject SchemaObject::for_marshalling(const realm::ObjectSchema& object, std::vector<SchemaProperty>& properties)
 {
     SchemaObject ret;
     ret.name = object.name.c_str();
